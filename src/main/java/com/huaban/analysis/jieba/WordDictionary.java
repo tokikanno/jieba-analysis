@@ -2,8 +2,8 @@ package com.huaban.analysis.jieba;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,11 +14,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.opencsv.CSVReader;
+
 
 public class WordDictionary {
     private static WordDictionary singleton;
     private static final String MAIN_DICT = "/dict.txt";
-    private static String USER_DICT_SUFFIX = ".dict";
+    private static String USER_DICT_SUFFIX = ".csv";
 
     public final Map<String, Double> freqs = new HashMap<String, Double>();
     public final Set<String> loadedPath = new HashSet<String>();
@@ -126,23 +128,19 @@ public class WordDictionary {
 
 
     public void loadUserDict(File userDict, Charset charset) {
-        InputStream is;
+    	CSVReader reader; 
+    	try {
+			reader = new CSVReader(new FileReader(userDict.getAbsolutePath()));
+		} catch (FileNotFoundException e) {
+			System.err.println(String.format("could not find %s", userDict.getAbsolutePath()));
+			return;
+		}
+
         try {
-            is = new FileInputStream(userDict);
-        }
-        catch (FileNotFoundException e) {
-            System.err.println(String.format("could not find %s", userDict.getAbsolutePath()));
-            return;
-        }
-        try {
-            @SuppressWarnings("resource")
-            BufferedReader br = new BufferedReader(new InputStreamReader(is, charset));
             long s = System.currentTimeMillis();
             int count = 0;
-            while (br.ready()) {
-                String line = br.readLine();
-                String[] tokens = line.split("[\t ]+");
-
+            String [] tokens;
+            while ((tokens = reader.readNext()) != null) {
                 if (tokens.length < 2)
                     continue;
 
@@ -160,8 +158,7 @@ public class WordDictionary {
         }
         finally {
             try {
-                if (null != is)
-                    is.close();
+            	reader.close();
             }
             catch (IOException e) {
                 System.err.println(String.format("%s close failure!", userDict.getAbsolutePath()));
